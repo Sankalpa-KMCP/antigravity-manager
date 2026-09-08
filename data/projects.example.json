@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Backend Services",
+    "target": "antigravity2",
+    "preferredAccountEmail": "account-a@example.invalid"
+  },
+  {
+    "name": "Frontend Application",
+    "target": "ide",
+    "preferredAccountEmail": "account-b@example.invalid"
+  }
+]

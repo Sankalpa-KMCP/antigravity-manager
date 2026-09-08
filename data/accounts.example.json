@@ -1,0 +1,26 @@
+{
+  "account-a@example.invalid": {
+    "email": "account-a@example.invalid",
+    "label": "Primary Developer",
+    "priority": 1,
+    "enabled": true,
+    "isReserve": false,
+    "notes": "Main development account"
+  },
+  "account-b@example.invalid": {
+    "email": "account-b@example.invalid",
+    "label": "Secondary Pool",
+    "priority": 2,
+    "enabled": true,
+    "isReserve": false,
+    "notes": "Automated batch processing"
+  },
+  "account-reserve@example.invalid": {
+    "email": "account-reserve@example.invalid",
+    "label": "Reserve Backup",
+    "priority": 3,
+    "enabled": true,
+    "isReserve": true,
+    "notes": "Emergency failover account"
+  }
+}
