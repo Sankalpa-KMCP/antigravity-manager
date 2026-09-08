@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity Manager — Local Multi-Instance Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation / Header -->
+    <header class="top-nav">
+      <div class="nav-brand">
+        <div class="brand-badge">V2.0</div>
+        <h1>Antigravity Manager</h1>
+        <span class="brand-subtitle">Manual Idle-Safe Account Switcher & Quota Monitor</span>
+      </div>
+      <div class="nav-actions">
+        <div class="auto-refresh-control">
+          <label class="switch-label" for="auto-refresh-toggle">Auto-refresh (5s)</label>
+          <input type="checkbox" id="auto-refresh-toggle" checked>
+        </div>
+        <button id="btn-refresh" class="btn btn-secondary">
+          <span class="btn-icon">↻</span> Refresh Now
+        </button>
+      </div>
+    </header>
+
+    <!-- Active Switch Session Banner (Shown dynamically when waiting / finished) -->
+    <section class="switch-session-panel hidden" id="switch-session-panel">
+      <div class="switch-session-content">
+        <div class="switch-session-header">
+          <div class="switch-status-indicator" id="switch-status-indicator">
+            <span class="spinner" id="switch-spinner"></span>
+            <span class="switch-status-title" id="switch-status-title">WAITING FOR ACCOUNT CHANGE...</span>
+          </div>
+          <button id="btn-cancel-switch" class="btn btn-danger btn-sm">Cancel Switch</button>
+        </div>
+        <div class="switch-session-body">
+          <div class="switch-details-row">
+            <div>Target: <strong id="switch-target-name">-</strong></div>
+            <div>Target Health: <strong class="text-accent" id="switch-target-health">HEALTHY (RUNNING, IDLE)</strong></div>
+            <div>Old Account: <strong id="switch-old-email">-</strong></div>
+            <div>Current Detected Account: <strong id="switch-current-email">-</strong></div>
+            <div id="switch-timer-wrap">Elapsed: <strong class="text-accent" id="switch-elapsed">0s</strong> / 300s (Timeout: <span id="switch-countdown">300s</span>)</div>
+          </div>
+          <div class="switch-instruction-box" id="switch-instruction">
+            -
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Global Aggregation Header: Separated Resource Classes -->
+    <section class="aggregate-banner" id="aggregate-banner">
+      <div class="aggregate-header">
+        <h2>Aggregated Credit Pools</h2>
+        <span class="aggregate-note">Strictly segregated Prompt and Flow resource classes (No combined balances)</span>
+      </div>
+      <div class="aggregate-grid">
+        <!-- Prompt Pool Section -->
+        <div class="stat-card pool-card">
+          <div class="stat-header-row">
+            <span class="stat-badge">PROMPT POOL</span>
+            <span class="stat-label">Total Monthly</span>
+          </div>
+          <div class="stat-value" id="agg-prompt-monthly">-</div>
+          <div class="stat-figures-row">
+            <div>Available: <strong class="text-accent" id="agg-prompt-available">-</strong></div>
+            <div>Computed Used: <span class="text-muted" id="agg-prompt-used">-</span></div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="agg-prompt-bar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Flow Pool Section -->
+        <div class="stat-card pool-card">
+          <div class="stat-header-row">
+            <span class="stat-badge">FLOW POOL</span>
+            <span class="stat-label">Total Monthly</span>
+          </div>
+          <div class="stat-value" id="agg-flow-monthly">-</div>
+          <div class="stat-figures-row">
+            <div>Available: <strong class="text-accent" id="agg-flow-available">-</strong></div>
+            <div>Computed Used: <span class="text-muted" id="agg-flow-used">-</span></div>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="agg-flow-bar" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- System & Polling Efficiency Telemetry -->
+        <div class="stat-card">
+          <div class="stat-label">Polling Efficiency</div>
+          <div class="stat-value text-accent" id="sys-rpc-count">- RPCs</div>
+          <div class="stat-sub" id="sys-subproc-stat">Subprocesses: 0 spawned in 5s polling</div>
+        </div>
+
+        <!-- Instances Monitored -->
+        <div class="stat-card">
+          <div class="stat-label">Instances Monitored</div>
+          <div class="stat-value" id="agg-instance-count">2 / 2 Active</div>
+          <div class="stat-sub" id="agg-last-sync">Last updated: -</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Target Instances Grid -->
+    <main class="targets-container" id="targets-container">
+      <div class="loading-state">Scanning Antigravity IDE and Antigravity 2.0 instances...</div>
+    </main>
+
+    <!-- Encrypted Session Vault & Fast Switcher (Phase 4B/4C) -->
+    <section class="vault-panel" id="vault-panel">
+      <div class="vault-header">
+        <div>
+          <div class="panel-badge-row">
+            <span class="vault-shield-badge">DPAPI CURRENT-USER VAULT</span>
+            <span class="vault-mode-badge">TRANSACTIONAL RECOVERY ACTIVE</span>
+          </div>
+          <h2>Shared Multi-Target Session Vault (IDE + Antigravity 2.0)</h2>
+          <span class="vault-subtitle">Unified encrypted account vault with target session isolation, multi-target capability tracking, and atomic switching.</span>
+        </div>
+        <div class="vault-actions">
+          <button id="btn-enroll-account" class="btn btn-primary btn-sm">
+            <span class="btn-icon">+</span> Add Account
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Transactional Switch Progress Banner -->
+      <div class="vault-progress-banner hidden" id="vault-progress-banner">
+        <div class="vault-progress-indicator">
+          <span class="spinner" id="vault-spinner"></span>
+          <div class="vault-progress-text">
+            <div class="vault-progress-state" id="vault-progress-state">STATE: IDLE</div>
+            <div class="vault-progress-msg" id="vault-progress-msg">Ready</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cross-Target Pairing Live Progress Banner (Phase 4G) -->
+      <div class="vault-progress-banner hidden" id="pairing-progress-banner" style="border-color: #3b82f6; background: rgba(59, 130, 246, 0.08); display: flex; justify-content: space-between; align-items: center;">
+        <div class="vault-progress-indicator">
+          <span class="spinner" id="pairing-spinner" style="border-top-color: #3b82f6;"></span>
+          <div class="vault-progress-text">
+            <div class="vault-progress-state" id="pairing-progress-state" style="color: #60a5fa;">WAITING FOR USER LOGIN</div>
+            <div class="vault-progress-msg" id="pairing-progress-msg">Ready</div>
+          </div>
+        </div>
+        <button id="btn-cancel-pairing" class="btn btn-danger btn-sm" onclick="cancelTargetEnrollment()">Cancel</button>
+      </div>
+
+      <!-- Vault Accounts Grid -->
+      <div class="vault-accounts-grid" id="vault-accounts-grid">
+        <div class="text-muted" style="padding:16px; font-size:13px;">Loading vaulted account sessions...</div>
+      </div>
+    </section>
+
+    <!-- Automatic Quota Router & Safe Activation Orchestrator (Phase 4I) -->
+    <section class="router-panel" id="router-panel" style="margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px;">
+      <div class="router-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 18px;">
+        <div>
+          <div class="panel-badge-row" style="display:flex; gap:8px; margin-bottom:6px;">
+            <span class="vault-shield-badge" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); font-size:11px; padding:2px 8px; border-radius:4px; font-weight:700;">AUTONOMOUS QUOTA ROUTER</span>
+            <span id="router-hysteresis-badge" style="background:rgba(59, 130, 246, 0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); font-size:11px; padding:2px 8px; border-radius:4px; font-weight:700;">HYSTERESIS ACTIVE (Switch: 10% / Return: 30%)</span>
+          </div>
+          <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 4px 0;">Automatic Quota Router &amp; Safe Activation Orchestrator</h2>
+          <span class="router-subtitle" style="font-size: 12px; color: var(--text-muted);">Autonomous quota monitoring, 15m dwell protection, safe IDLE boundary gating, and target-specific activation dispatch.</span>
+        </div>
+
+        <div class="router-controls" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <!-- Model Selection -->
+          <div style="display:flex; align-items:center; gap:6px;">
+            <label for="router-model-select" style="font-size:12px; color:var(--text-muted); font-weight:600;">Monitored Model:</label>
+            <select id="router-model-select" class="form-input" style="padding:4px 8px; font-size:12px; width:auto;">
+              <option value="Gemini 3.8 Flash (High)">Gemini 3.8 Flash (High)</option>
+              <option value="Gemini 3.1 Pro (High)">Gemini 3.1 Pro (High)</option>
+              <option value="Gemini 3.7 Flash (High)">Gemini 3.7 Flash (High)</option>
+              <option value="Gemini 3.6 Flash (High)">Gemini 3.6 Flash (High)</option>
+              <option value="Claude Sonnet 4.6 (Thinking)">Claude Sonnet 4.6 (Thinking)</option>
+              <option value="Claude Opus 4.6 (Thinking)">Claude Opus 4.6 (Thinking)</option>
+            </select>
+          </div>
+
+          <!-- Mode Toggle -->
+          <div style="display:flex; align-items:center; gap:6px;">
+            <label for="router-mode-select" style="font-size:12px; color:var(--text-muted); font-weight:600;">Mode:</label>
+            <select id="router-mode-select" class="form-input" style="padding:4px 8px; font-size:12px; width:auto;">
+              <option value="INDEPENDENT">Independent (Split)</option>
+              <option value="SYNCED">Synced (Matched)</option>
+            </select>
+          </div>
+
+          <!-- Operating Mode Selector -->
+          <div style="display:flex; align-items:center; gap:6px;">
+            <label for="router-operating-mode-select" style="font-size:12px; color:var(--text-muted); font-weight:600;">Operating Mode:</label>
+            <select id="router-operating-mode-select" class="form-input" style="padding:4px 8px; font-size:12px; width:auto;">
+              <option value="OFF">OFF (Passive)</option>
+              <option value="SHADOW">SHADOW (Hypothetical Only)</option>
+              <option value="LIVE" disabled>LIVE (Disabled in Phase 4J)</option>
+            </select>
+          </div>
+
+          <!-- Master Toggle Button -->
+          <button id="btn-toggle-router" class="btn btn-secondary btn-sm" style="font-weight:700;">
+            <span id="router-power-indicator" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-right:6px;"></span>
+            <span id="router-power-text">Routing: OFF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Router Targets Status Grid -->
+      <div id="router-targets-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;">
+        <div class="text-muted" style="padding: 12px; font-size: 13px;">Loading router target status...</div>
+      </div>
+    </section>
+
+    <!-- Multi-Account Pool & Quota Engine Panel (Phase 4A) -->
+    <section class="pool-panel" id="pool-panel">
+      <div class="pool-header">
+        <div>
+          <h2>Multi-Account Quota Pool</h2>
+          <span class="pool-subtitle">Authorized provider-approved accounts registry, capacity metrics, and deterministic candidate routing.</span>
+        </div>
+        <div class="pool-model-selector-wrap">
+          <label for="pool-model-select">Inspecting Model:</label>
+          <select id="pool-model-select" class="pool-model-select">
+            <option value="Gemini 3.8 Flash (High)">Gemini 3.8 Flash (High)</option>
+            <option value="Gemini 3.1 Pro (High)">Gemini 3.1 Pro (High)</option>
+            <option value="Gemini 3.7 Flash (High)">Gemini 3.7 Flash (High)</option>
+            <option value="Gemini 3.6 Flash (High)">Gemini 3.6 Flash (High)</option>
+            <option value="Claude Sonnet 4.6 (Thinking)">Claude Sonnet 4.6 (Thinking)</option>
+            <option value="Claude Opus 4.6 (Thinking)">Claude Opus 4.6 (Thinking)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Best Candidate Callout Banner -->
+      <div class="best-candidate-banner" id="best-candidate-banner">
+        <div class="candidate-badge-col">
+          <span class="badge-best-candidate">BEST CANDIDATE</span>
+        </div>
+        <div class="candidate-details-col">
+          <div class="candidate-title" id="candidate-title">Selecting best candidate...</div>
+          <div class="candidate-reasons" id="candidate-reasons">-</div>
+        </div>
+        <div class="candidate-quota-col">
+          <div class="candidate-quota-pct" id="candidate-quota-pct">-</div>
+          <div id="candidate-health-wrap"><span class="badge-ready" id="candidate-health-badge">READY</span></div>
+        </div>
+      </div>
+
+      <!-- Pool Status Summary Counters -->
+      <div class="pool-summary-grid" id="pool-summary-grid">
+        <div class="pool-stat-box">
+          <span class="pool-stat-num" id="pool-stat-accounts">0</span>
+          <span class="pool-stat-label">Total Accounts</span>
+        </div>
+        <div class="pool-stat-box">
+          <span class="pool-stat-num text-success" id="pool-stat-vault-valid">0</span>
+          <span class="pool-stat-label">Valid Vault Sessions</span>
+        </div>
+        <div class="pool-stat-box">
+          <span class="pool-stat-num text-success" id="pool-stat-ready">0</span>
+          <span class="pool-stat-label">Ready</span>
+        </div>
+        <div class="pool-stat-box">
+          <span class="pool-stat-num text-warning" id="pool-stat-low">0</span>
+          <span class="pool-stat-label">Low</span>
+        </div>
+        <div class="pool-stat-box">
+          <span class="pool-stat-num text-danger" id="pool-stat-critical">0</span>
+          <span class="pool-stat-label">Critical</span>
+        </div>
+        <div class="pool-stat-box">
+          <span class="pool-stat-num text-warning" id="pool-stat-reserve">0</span>
+          <span class="pool-stat-label">Reserve</span>
+        </div>
+        <div class="pool-stat-box">
+          <span class="pool-stat-num text-muted" id="pool-stat-exhausted">0</span>
+          <span class="pool-stat-label">Exhausted</span>
+        </div>
+        <div class="pool-stat-box">
+          <span class="pool-stat-num text-muted" id="pool-stat-stale">0</span>
+          <span class="pool-stat-label">Unknown / Stale</span>
+        </div>
+      </div>
+
+      <!-- Multi-Account Table (Fixed Order: 1. Priority, 2. Account ID) -->
+      <div class="pool-table-container">
+        <table class="pool-table">
+          <thead>
+            <tr>
+              <th>Priority</th>
+              <th>Account</th>
+              <th>Remaining</th>
+              <th>Health</th>
+              <th>Freshness</th>
+              <th>Reset</th>
+              <th>Vault Status</th>
+              <th>Enabled</th>
+              <th>Active Target</th>
+            </tr>
+          </thead>
+          <tbody id="pool-table-body">
+            <tr><td colspan="9" class="text-muted text-center">Loading account pool...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Event Stream (Non-intrusive) -->
+      <div class="pool-events-container" id="pool-events-container">
+        <div class="pool-events-header">Recent State Transitions & Notifications</div>
+        <div class="pool-events-list" id="pool-events-list">
+          <div class="text-muted" style="font-size:12px">No transition events recorded yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Project Routing Foundation Panel -->
+    <section class="projects-panel">
+      <div class="projects-header">
+        <div>
+          <h2>Project Routing Foundation</h2>
+          <span class="projects-subtitle">Non-sensitive workspace routing. Matches projects to preferred accounts (No credentials stored).</span>
+        </div>
+        <button id="btn-toggle-add-project" class="btn btn-secondary btn-sm">+ Add Project Mapping</button>
+      </div>
+
+      <!-- Add Project Mapping Inline Form (Toggleable) -->
+      <form id="form-add-project" class="add-project-form hidden">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="proj-name">Project Name</label>
+            <input type="text" id="proj-name" placeholder="e.g. DentCare" required>
+          </div>
+          <div class="form-group">
+            <label for="proj-path">Local Path (Optional)</label>
+            <input type="text" id="proj-path" placeholder="e.g. D:\Projects\DentCare">
+          </div>
+          <div class="form-group">
+            <label for="proj-target">Target Instance</label>
+            <select id="proj-target" required>
+              <option value="ide">Antigravity IDE</option>
+              <option value="antigravity2">Antigravity 2.0</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="proj-email">Preferred Account Email</label>
+            <input type="email" id="proj-email" placeholder="e.g. user@example.com" required>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary btn-sm">Save Mapping</button>
+          <button type="button" id="btn-cancel-add-project" class="btn btn-secondary btn-sm">Cancel</button>
+        </div>
+      </form>
+
+      <!-- Project Mappings Table -->
+      <div class="projects-table-container">
+        <table class="projects-table">
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Target</th>
+              <th>Preferred Account</th>
+              <th>Current Account</th>
+              <th>Target State</th>
+              <th>Routing Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="projects-table-body">
+            <tr><td colspan="7" class="text-muted text-center">Loading project routing mappings...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Footer / Security Safeguards -->
+    <footer class="app-footer">
+      <div class="footer-item">
+        <span class="security-dot"></span>
+        <span>Localhost Bound (127.0.0.1)</span>
+      </div>
+      <div class="footer-item">
+        <span>Zero Credential Storage</span>
+      </div>
+      <div class="footer-item">
+        <span>Idle Gate Protected</span>
+      </div>
+      <div class="footer-item">
+        <span>No Auto-Exhaustion Switching</span>
+      </div>
+      <div class="footer-item">
+        <span>Zero 5s Shell Spawns</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Enrollment Modal (Phase 4D) -->
+  <div id="enrollment-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Enroll Authorized Account (Antigravity 2.0)</h3>
+        <button class="btn-close" id="btn-close-enroll-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
+          Securely registers an authorized provider account into the local DPAPI encrypted vault using Google's native sign-in flow.
+        </p>
+
+        <div id="enroll-config-view" style="margin-top:8px;">
+          <div style="background:var(--bg-card); padding:12px 14px; border-radius:6px; border:1px solid var(--border-subtle); margin-bottom:14px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="enroll-return-to-base" checked />
+              <span style="font-weight:600; font-size:13px; color:var(--text-primary);">Return to base account after enrollment</span>
+            </label>
+            <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px; margin-left:22px;">
+              Automatically restores your current working account after the new account is captured and verified. (Default: ON)
+            </span>
+          </div>
+        </div>
+
+        <!-- Enrollment Stepper Live Progress View -->
+        <div id="enroll-stepper-view" class="enroll-stepper hidden">
+          <div class="stepper-header">
+            <span class="stepper-badge" id="enroll-stepper-badge">PRECHECK</span>
+            <span style="font-size:12px; color:var(--text-muted);" id="enroll-stepper-timer"></span>
+          </div>
+          <div style="font-size:13px; color:var(--text-primary); font-weight:500; margin-bottom:10px;" id="enroll-stepper-msg">
+            Initiating enrollment...
+          </div>
+          <div class="stepper-steps-grid" id="enroll-steps-grid">
+            <div class="stepper-step" data-step="PRECHECK">1. Precheck</div>
+            <div class="stepper-step" data-step="PRESERVE_CURRENT">2. Preserve</div>
+            <div class="stepper-step" data-step="START_OAUTH">3. OAuth</div>
+            <div class="stepper-step" data-step="WAITING_FOR_USER">4. Waiting</div>
+            <div class="stepper-step" data-step="DETECT_ACCOUNT_CHANGE">5. Detect</div>
+            <div class="stepper-step" data-step="VALIDATING_NEW_ACCOUNT">6. Validate</div>
+            <div class="stepper-step" data-step="CAPTURING">7. Capture</div>
+            <div class="stepper-step" data-step="COLD_VERIFYING">8. Cold Verify</div>
+            <div class="stepper-step" data-step="COMPLETED">9. Done</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancel-enroll-modal">Cancel</button>
+        <button class="btn btn-primary" id="btn-start-enrollment">Start Sign-In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account Edit Modal (Phase 4D) -->
+  <div id="account-edit-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Edit Account Configuration</h3>
+        <button class="btn-close" id="btn-close-edit-modal">&times;</button>
+      </div>
+      <form id="form-edit-account" class="modal-body">
+        <input type="hidden" id="edit-acc-email" />
+        <input type="hidden" id="edit-acc-id" />
+        <div class="form-group">
+          <label for="edit-acc-label">Display Label</label>
+          <input type="text" id="edit-acc-label" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label for="edit-acc-priority">Routing Priority (1 = Highest)</label>
+          <input type="number" id="edit-acc-priority" min="1" max="99" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="edit-acc-reserve" />
+            <span style="font-weight:600; font-size:13px; color:var(--text-primary);">Mark as Reserve Account (Held for failover)</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="edit-acc-enabled" checked />
+            <span style="font-weight:600; font-size:13px; color:var(--text-primary);">Enable Account for Routing Recommendations</span>
+          </label>
+        </div>
+        <div class="modal-footer" style="padding:0; margin-top:16px;">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-edit-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Router Enable Acknowledgement Modal (Phase 4I) -->
+  <div id="router-enable-modal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width:520px;">
+      <div class="modal-header">
+        <h3 style="color:#f59e0b; display:flex; align-items:center; gap:8px;">
+          <span>⚠️</span> Enable Automatic Quota Routing
+        </h3>
+        <button class="btn-close" id="btn-close-router-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="font-size:13px; line-height:1.6; color:var(--text-secondary);">
+        <p style="margin-bottom:12px;">
+          You are about to enable autonomous account routing based on monitored model quota health. Please review the target activation behaviors:
+        </p>
+        <div style="background:rgba(0,0,0,0.25); padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); margin-bottom:12px;">
+          <div style="font-weight:700; color:#e2e8f0; margin-bottom:4px;">Antigravity 2.0 (Automated Cold Target Reload)</div>
+          <div style="color:var(--text-muted); font-size:12px;">
+            When quota is critical (&le;10%) and the target is IDLE, the Manager will automatically update credentials and recycle <strong>only</strong> the AG2 language server component. It will never restart Antigravity IDE.
+          </div>
+        </div>
+        <div style="background:rgba(0,0,0,0.25); padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); margin-bottom:12px;">
+          <div style="font-weight:700; color:#e2e8f0; margin-bottom:4px;">Antigravity IDE (Interactive Routing Handoff)</div>
+          <div style="color:var(--text-muted); font-size:12px;">
+            The Manager does NOT perform unsupported token injection. When IDE quota is critical, the dashboard prompts you with a recommended account and a <strong>[ Switch IDE ]</strong> action for the supported Google login path.
+          </div>
+        </div>
+        <div style="background:rgba(0,0,0,0.25); padding:10px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">
+          <div style="font-weight:700; color:#34d399; margin-bottom:4px;">Active Task Protection</div>
+          <div style="color:var(--text-muted); font-size:12px;">
+            Account changes are strictly blocked whenever <code>runningTrajectories &gt; 0</code>. Active agent tasks will never be interrupted.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-cancel-router-enable">Cancel</button>
+        <button class="btn btn-primary" id="btn-confirm-router-enable" style="background:#f59e0b; border-color:#d97706; color:#000; font-weight:700;">I Acknowledge &amp; Enable</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
