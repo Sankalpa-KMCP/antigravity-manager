@@ -1,0 +1,23 @@
+{
+  "name": "antigravity-manager",
+  "version": "1.0.0",
+  "description": "Lightweight, read-only multi-instance dashboard for Antigravity IDE and Antigravity 2.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && node scripts/copy-assets.js",
+    "start": "node dist/index.js",
+    "test": "node dist/test/run-all-tests.js"
+  },
+  "keywords": [
+    "antigravity",
+    "dashboard",
+    "quota-monitor",
+    "read-only"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
